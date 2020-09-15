@@ -1,11 +1,15 @@
 ---
 title: "肠道菌群研究二十年·大数据"
 date: "`r Sys.Date()`"
-site: bookdown::bookdown_site
+delete_merged_file: true
 ---
 
 ```{r}
+library(dplyr)
+library(tidyr)
+library(forcats)
 library(ggplot2)
+library(mrgut)
 ```
 
 
@@ -17,20 +21,370 @@ library(ggplot2)
 
 # WoS 来源数据分析结果
 
+```{r}
+China_study <- readRDS("data/WoS-China-study.RDS")
+China_study_core <- readRDS("data/WoS-China-study-core.RDS")
+
+```
+
+
+
 ## 研究的增长
 
+二十年间，中国发表论文的数量和比例双双增加（图 \@ref(fig:china-publication-number)）。
+
+二十年前，我国基本没有相关的研究论文；十年前，即2010年，我国发表相关研究 82 篇，占当年全世界总发文量的 5%；刚刚过去的2019年，我国发表相关研究论文超过 2500 篇，占当年全世界总发文量的 25% 以上。自2013年以来，我国的论文发表量已经排到了世界第二的位置，仅次于美国。
+
+从2009年开始，有我国科学家参与的高被引论文开始出现，高被引论文数量随之不断上升。最近三年（2017-1019），SCI高被引论文的数量都超过了35篇，成为能够贡献较多突出研究成果的国家之一。
+
+```{r china-publication-number, fig.cap="肠道菌群研究领域我国每年发表的SCI论文及其中的高被引论文的数量"}
+## 论文年发表量
+world_yearly_output <- read.csv("data/Wos-world-yearly-output.csv")
+all_article <- China_study %>% group_by(PY) %>%
+  summarise(yearly_output = n())
+
+highlycited <- China_study %>% 
+  filter(HC==TRUE) %>%
+  group_by(PY) %>%
+  summarise(yearly_output = n()) 
+
+library(RColorBrewer)
+plots <- lapply(list(all_article, highlycited), function(d){
+  ggplot(d, aes(PY,yearly_output)) +
+    scale_fill_gradient2(low = brewer.pal(n=3, name="YlGnBu")[[1]],
+                         mid = brewer.pal(n=3, name="YlGnBu")[[2]],
+                         high=brewer.pal(n=3, name="YlGnBu")[[3]]) +
+    geom_col() +
+    theme_light() +
+    theme(legend.position = "none") +
+    labs(x="",y="")
+})
+
+p1 <- plots[[1]] + labs(title = "中国每年发表论文的数量")
+p2 <- plots[[2]] + labs(title = "中国每年发表高被引论文的数量")
+
+p1 %>% aplot::insert_bottom(p2)
+```
 
 ## 研究脉络
 
 
-## 研究机构和研究团队
+
+我们使用历史引证网络分析的方法来厘清我国肠道菌群的研究脉络（图 \@ref(fig:china-histnet)）。历史引证网络中共包含了19篇关键文献，其主要信息列示在表 \@ref(fig:china-histnet-articles) 中。接下来，我们将逐一回顾一下这些文献。
+
+```{r china-histnet, fig.cap="我国肠道菌群研究的核心历史引证网络。水平线指示文章发表的年份，点之间的灰色线条指示引用关系，每个点代表着一篇文章（以名字和年份区分）。"}
+library(bibliometrix)
+library(igraph)
+library(tibble)
+china_histnet <- histNetwork(China_study,min.citations = 10,verbose = F)
+histnet <- histPlot(china_histnet,verbose = FALSE)
+```
+
+2008年发表在《美国科学院院刊（PNAS）》上的文章是一个重要的基点。该研究由上海交通大学赵立平教授、浙江大学第一附属人民医院李兰娟院士、中国国家人类基因组中心赵国屏院士和中国科学院武汉物理与数学研究所唐惠儒研究员实验室联合开展，并与伦敦帝国理工学院的JK Nicholson教授合作，第一作者是Li Min。研究的主要成果是发现了共生的肠道微生物调节人体的代谢表型。研究采用了代谢组学和宏基因组学相结合的方式，解析了7个中国人的粪便及尿液样本，并建立了菌群-宿主代谢连接的模型。研究在物种水平上发现了中国与美国人肠道菌群结构存在差异，并鉴定出最大影响宿主代谢和健康微生物组的关键功能成员的特征，如柔嫩梭菌群与尿液中8个代谢物有关，是菌群中功能性很强的成员，会影响许多宿主途径等。从代谢和宏基因组学的角度解释了人类与肠道菌群可以共同进化，并最终形成了密切的共生关系。
+
+第二个关键研究是2010年发表在《Nature》杂志上的一篇论文，是中欧合作的人肠道宏基因组（MetaHIT）计划的最为关键成果之一。研究的主要负责人是中方华大基因的王俊和法方国立农学研究所的SD Ehrlich教授，研究的第一作者是华大基因的覃俊杰和李瑞强。该研究的主要成果是在人类肠道中鉴定出330万个微生物基因。人肠道菌群样本取自124个欧洲人的粪便标本。这些超过人类基因150倍的基因集包含了绝大多数人类的主要肠道微生物基因，并且大部分基因在人群中共有。细菌基因的比例超过99%，这群人中共有约1100种的细菌，其中160个优势物种为人群所共有。
+
+第三项关键研究2010年发表在《ISME J》杂志上，由赵立平教授和中科院上海生命研究所的Yan Chen领衔。该研究以小鼠建立实验动物模型，并借此揭示了肠道菌群、宿主基因和与饮食之间的相互作用在代谢综合征发展中的作用。
+
+第四项关键研究2011年发表在《肝病学（Hepatology）》杂志上，由李兰娟院士和中科院北京微生物所的朱宝利研究员团队合作完成。该研究基于36名肝硬化患者和24名健康对照，得出了肝硬化相关的疾病菌群特征，并鉴定了与肝硬化相关的149个可操作性分类单元。
+
+第五项关键研究2011年发表在《Nature》杂志上，也是MetaHIT的研究成果，主要是在人体中发现了三种肠型。华大基因参与了这一论文的发表。
+
+第六项关键研究2012年发表在《Nature》杂志上，主要作者是华大基因的王俊、覃俊杰等人。本研究采用了微生物全基因组关联分析的方法（mGWAS）揭示了345个中国人的肠道菌群中存在的二型糖尿病标记物，并最终确定了23个肠道微生物标记物可以用于二型糖尿病的分类。
+
+第七项关键研究2012年发表在《PLoS ONE》杂志上，主要作者是中科院武汉水生所的Guitang Wang。该项研究主要揭示了草鱼肠道菌群的典型特征，并推测影响草鱼肠道菌群的演化的三大因素分别是水体、底泥和饲料等。
+
+第八项关键研究2012年发表在《ISME J》杂志上，仍然是由赵立平教授领衔。该项研究揭示了大肠癌患者中的疾病菌群特征，发现了11个与大肠癌高度相关的物种类群。
+
+第九项关键研究是2013年发表在《Nature Reviews Microbiology》上面的一篇综述，由赵立平教授执笔，该研究探讨了如何揭示肠道菌群在肥胖中的作用，指出可以通过微生物组关联分析、宿主响应和无菌动物等手段来完成这一任务。
+
+第十项关键研究2013年发表在《Nature》杂志上，揭示了与人体代谢性疾病相关的菌群特征[11]。华大基因参与了这一论文的发表。
+
+第11项关键研究2013年发表在《ISME J》杂志上，通讯作者赵立平。在本研究中，在中国的肥胖人群中分离出一株产内毒素机会致病菌，可以促进无菌小鼠产生肥胖，从而建立了肠道菌群与肥胖之间的因果关系。
+
+第12项关键研究2014年发表在《Nature》杂志上，通讯作者是李兰娟、郑树森（Shusen Zheng）和S. Dusko Ehrlich（伦敦国王学院）。该研究在第四项研究的基础上，进一步采用宏基因组技术和更大的人群分析了肝硬化相关的疾病菌群特征，得到了15个生物标记，可以用来准确的预测肝硬化。
+
+第13项关键研究2014年发表在《Nature biotechnology》杂志上，主要作者是华大基因的团队。该研究公布了有史以来最大的肠道菌群参考基因组序列，包括近一千万个高质量的基因。
+
+
+```{r china-histnet-articles,fig.cap="我国肠道菌群研究的核心历史引证网络中列出的19篇研究论文的详细信息"}
+
+nodes <- names(V(histnet))
+node_doi <- str_extract(nodes, "10\\.[0-9]+\\/[^\\/]+")
+China_study %>% filter(DI %in% node_doi) %>%
+  mutate(SR=mrgut_doi_link(uuid=DI,type="html",title=SR)) %>%
+  select(SR,TI,J9,PY) %>%
+  arrange(PY) %>%
+  mutate_at(c("TI","J9"), str_to_title) %>%
+  DT::datatable(colnames = c("引文","标题","期刊","发表年份"),
+                rownames = FALSE,
+                escape = FALSE,
+                extensions = c("Buttons"),
+                options = list(pageLength=5,
+                               dom = "Bfrtip", pageLength = 20, buttons = list("pageLength", 
+    list(extend = "copy"), list(extend = "excel", filename = df, 
+      header = TRUE))))
+
+```
+
+第14项关键研究2015年发表在《Nature》杂志上，研究了二甲双胍这一二型糖尿病常用药对人肠道菌群的影响。华大基因参与了该项研究。
+
+第15项关键研究2015年发表在《Nature Medicine》杂志上，主要研究了类风湿性关节炎患者口腔及肠道菌群受到扰乱且在治疗后部分恢复。主要参与单位是北京协和医学院和华大基因。
+
+第16项关键研究2015年发表在《Nature Communications》杂志上，研究由台湾长庚大学的赖信志教授领衔，发现灵芝（水提取物）能通过调节肠道菌群的组成来降低小鼠肥胖。
+
+第17项关键研究2015年发表在《Nature Communications》杂志上，研究由华大基因王俊领衔，揭示了结直肠腺瘤癌变过程中的肠道菌群特征。
+
+第18项关键研究2015年发表在《ISME J》杂志上，由上海交通大学Jian Shen领衔。研究发现使用益生菌可以缓解高脂膳食小鼠具有的代谢综合征的症状。
+
+第19项关键研究2018年发表在《Science》杂志上，由赵立平教授领衔。该研究成果利用膳食纤维改善了二型糖尿病的症状。
+
+由我国的研究人员主导及参与的这19项关键研究，时间跨度从2008年到2018年，较完整的展示了我国肠道菌群研究的历史演替。即从认识肠道菌群的结构，到揭示菌群在肥胖、肝硬化等疾病中的作用，再到利用益生菌、益生元等干预措施来缓解和治疗一些肠道菌群相关的疾病。步步为营，稳扎稳打，奠定了我国肠道菌群研究的重要基石。
+
+
+
+## 主要的研究机构
+
+以论文发表量计算，20年间国内发表论文最多的研究机构分别是：中国科学院（中国科学院大学）、浙江大学、上海交通大学、中国农业大学和中国农业科学院等。
+
+在前 30 名中，台湾的国立台湾大学、中国医药大学（台湾），以及香港的香港大学、香港中文大学等高校榜上有名，它们各自是相应地区的主要的肠道菌群相关研究机构。
+
+
+
+```{r china-top-university, fig.asp=1,fig.cap="参与我国肠道菌群研究的主要科研院所（展示发文量最多的30家）"}
+# 主要研究机构
+China_affiliations <- table(unlist(strsplit(China_study$AU_UN_NR,";"))) %>% sort(decreasing = TRUE) %>% 
+  enframe(name = "aff",value = "nRecord")
+# write.csv(China_affiliations,file = "China_affiliations.csv")
+
+China_affiliation_translation <- openxlsx::read.xlsx("data/WoS-China-affiliations.xlsx")
+
+China_affiliations <- China_affiliations %>%
+  left_join(China_affiliation_translation, by = c("aff"="WoS_Name"))
+
+d <- China_affiliations  %>%
+  head(30) %>%
+  select(Chinese_Name, nRecord)
+
+hbarplot(d) +
+  labs(x="",y="",title = "主要科研机构（以论文发表量计）")
+
+```
+
+
+在下方的研究机构合作网络中，大概可以看到 3 个主要的研究群体。
+
+首先是以中科院为中心的主力研究团体，中科院作为一个核心，将各大高校和研究所有机的联系了起来；
+
+其次是台湾地区的学术团体，除了前面提到的两所大学，还有国立阳明大学（NATL YANG MING UNIV）、台北医科大学（TAIPEI MED UNIV）、国立中兴大学（NATL CHUNG HSING UNIV）等，而宁波大学则是与之联系最紧密的大陆高校。
+
+再次是以江南大学为核心的几所高校，包括北京工商大学（BTBU，BEIJING TECHNOL AND BUSINESS UNIV）、南京医科大学、南京大学等。
+
+接下来是由北京中医药大学和中国中医学研究院组成的中医药方阵，以及第三军医大学和重庆医科大学组成的团体。
+
+
+
+```{r china-aff-col-net, fig.cap="中国各大研究机构之间的合作关系"}
+library(visNetwork)
+university_network(China_study,edge_weight_cutoff = 10,nNode = 60) 
+
+```
+
+
+
+
+通过作者合作网络，可以更加清楚的看到国内各个研究团体，发现团队的带头人。
+
+
+为了取得良好的可视化效果，我们对作者合作网络进行了简化，只保留了 200 个发文量最高的作者，同时删掉了合作发表论文数量小于 5 次的联系。这样，可以得到下面这幅图（图 \@ref(fig:top-china-aut-col-net)）。
+
+```{r top-china-aut-col-net, fig.cap="过去二十年间中国发表论文最多的200名作者之间和合作关系"}
+author_network(China_study, nNode = 200, edge_weight_cutoff = 5)
+```
+
+
+
+如果不出意外的话，你将可以看到这里面最大的一个研究群体位于这幅图的中间。他又可以继续分成几个小团体。其中右边浅红色的部分，核心应当是李兰娟院士（LI, LANJUAN）；绿色的部分，核心应当是赵立平教授（ZHAO, LIPING）；深红色的部分，核心应当是贾伟教授（JIA, WEI）；橙色的部分，核心应当是ZHU, WEIYUN。
+
+与前面的一个群体不同，第二大的群体（上面橙色的部分）如果你放大来看，会发现这是一个联系非常紧密的团体，主要是华大基因及其合作者。其中包括了华大基因的汪俊（WANG, JUN），汪建（WANG, JIAN）等人。
+
+在图片左下角的灰蓝色部分，我们可以找到陈卫院士（CHEN, WEI）的团队，这个铁四角包括赵建新（ZHAO, JIANXIN）、张灏（ZHANG, HAO）和王刚（WANG, GANG）等三位教授。
+
+自此向右上方拖动，一个黄色的子网络是张和平教授（ZHANG, HEPING）的团队。右侧紧挨着的绿色子网络，是印遇龙院士（YIN, YULONG）的团队。
+
+缩放网络，将焦点聚集在左上方的蓝色区域放大，可以观察到来自中国香港的研究群体。这一群体由于君教授（YU, JUN）、黄秀娟教授（NG，SIEW C）等人组成。
+
+这幅网络中一共有数十个子网络，用不同的颜色标示。读者不妨找找，看有没有你认识的老师在这里面。
+
+可以说，图中的这些人撑起了过去二十年中国肠道菌群研究的不同领域的天幕，让我们向他们致敬！
+
+
+不同的研究群体可能有不同的高光时刻。为了证明这一假设，我们将2010-2019年的研究划分成3个阶段，分别观察合作网络的具体情况，比较网络中存在的差异。
+
+可以发现，在第一个五年（2010-2014），是华大基因系集体出道的时刻，汪建等人组成了最大的一个合作团体（图 \@ref(fig:top-china-aut-col-net-2010-2014) 中间绿色部分）；其次，是李兰娟、周志刚、赵立平、贾伟、魏泓、李宁、钱大伟、陈卫等老师为核心的研究团队。这一批研究人员是较早开展肠道菌群相关研究的科学家。
+
+
+```{r top-china-aut-col-net-2010-2014, fig.cap="2010-2014年间中国发表论文最多的100名作者之间和合作关系"}
+author_network(China_study,from=2010,to=2014, nNode = 100, edge_weight_cutoff = 5)
+```
+
+
+接下来，在2015-2017这三年间，首先是汪建、赵立平、陈卫、李宁、魏泓、李兰娟等老师继续发光发热，同时也出现了印遇龙、张发明等新的有较多产出的研究力量（图\@ref(fig:top-china-aut-col-net-2015-2017)）。
+
+```{r top-china-aut-col-net-2015-2017, fig.cap="2015-2017年间中国发表论文最多的100名作者之间和合作关系"}
+author_network(China_study,from=2015,to=2017, nNode = 100, edge_weight_cutoff = 5)
+```
+
+在第三个阶段，即2017-2019年间，合作群体有了更加明显的改变。首先可以明显看到团体小型化的趋势比较明显，这可能意味着肠道菌群研究已经分化出较多差异比较明显的不同研究方向；其次，华大基因的研究群体，以及李兰娟、赵立平等人的团队开始变小；与此同时，王邦茂、朱永官、王军军、曹建新、周宏伟等新的研究群体开始成形。
+
+```{r top-china-aut-col-net-2018-2019, fig.cap="2018-2019年间中国发表论文最多的100名作者之间和合作关系"}
+author_network(China_study,from=2018,to=2019, nNode = 100, edge_weight_cutoff = 4)
+```
+
 
 
 ## 研究领域
 
+肠道菌群的研究我们规划了八大领域，分别是饮食、免疫、代谢、癌症、心血管疾病、肠X轴、药物互作和中医药。可以发现前四大领域研究的发端较早，而后四大领域研究的发端则稍微晚一些。特别是“肠X轴”的研究，在2013年以后才逐渐壮大起来。
+
+```{r}
+
+diet_keywords <- list(primary=c("\\bdiet[:alpha:]+"), 
+                      secondary = c("food","nutrition","supplement","fasting","calorie restriction",
+                                    "fibre|fiber","carbohydrate","meat","fish","egg","milk","dairy",
+                                    "fruit","vegetable","additives","sweetener"))
+
+immunity_keywords <- list(primary=c("immun[:alpha:]+"),
+                          secondary = c("inflamm[:alpha:]+","barrier","defense","T cell","B cell",
+                                        "lymphocyte","macrophage","cytokine","dendritic","neutrophil",
+                                        "interleukin","antibody"))
+
+metabolism_keywords <- list(primary = c("\\bmetabol[:alpha:]+"),
+                            secondary = c("obesity","diabet[:alpha:]+","insulin","lipid","\\bfat[:alpha:]+",
+                                          "adipose","NAFLD","NASH","nonalcoholic steatohepatitis","SCFA"))
+
+cancer_keywords <- list(primary = c("cancer|\\btumo[:alpha:]+|oncology|melanoma|carcino[:alpha:]+"),
+                        secondary = c("CRC","CAC","PDAC","HCC"))
+
+cardio_keywords <- list(primary = c("heart|cardi[:alpha:]+"),
+                        secondary = c("stroke","cardiac","arterial","athero[:alpha:]+","hypertension","blood pressure"))
+
+gut_axis_keywords <- list(primary = c("gut.{4,15}axis"),
+                          secondary = NULL)
+
+
+metabolism_effect_keywords <- list(primary = c("\\bmetabol[:alpha:]+"),
+                        secondary = c("SCFA","short-chain fatty acids","butyrate","TMAO","TMA","secondary bile acids"))
+
+medicine_keywords <- list(primary = c("medicine|medication|drug|[:alpha:]+pharmaco[:alpha:]+|xenobiotic"),
+                        secondary = NULL)
+
+early_life_keywords <- list(primary = c("early.{1,2}life|infan[:alpha:]+|maternal"),
+                        secondary = c("pregnan[:alpha:]+","[:alpha:]+natal","in utero","uterus","placent[:alpha:]+","vertical transmission"))
+
+cohort_keywords <- list(primary = c("cohort"),
+                        secondary = NULL)
+
+dark_matter_keywords <- list(primary = c("dark matter|virome|mycobiome|culturomics"),
+                             secondary = NULL)
+
+
+chinese_medicine_keywords <- list(primary = c("chinese herbal medicine|traditional Chinese medicine"))
+
+topic_keywords <- list(diet_keywords, immunity_keywords, metabolism_keywords, cancer_keywords, cardio_keywords,
+                       gut_axis_keywords,medicine_keywords,chinese_medicine_keywords)
+topic_en <- c("diet","immunity","metabolism","cancer","cardiac","axis","medicine","Chinese medicine")
+topic_cn <- c("饮食","免疫","代谢","癌症","心血管疾病","肠X轴","药物互作","中医药")
+topic <- topic_cn
+names(topic) <- topic_en
+nTopic <- length(topic)
+```
+
+```{r}
+
+
+topic_articles_core <- lapply(topic_keywords, function(keyword){
+  China_study %>%
+    filter(str_detect(content, 
+                      regex(paste0(c(keyword$primary,keyword$secondary),collapse = "|"), 
+                            ignore_case = T))) %>%
+    mutate(DT=factor(DT))
+})
+
+names(topic_articles_core) <- topic_en
+
+topic_nRecords_core <- lapply(topic_articles_core, function(article){
+  article %>% group_by(PY) %>%
+    dplyr::summarise(nRecord = n())
+})
+```
+
+
+
+```{r topic-nRecord-in-china-study, fig.cap="中国各研究主题关键论文数量对比",fig.width=4.5}
+yearly_output <- lapply(1:nTopic, function(i){
+  topic_articles_core[[i]] %>%
+    group_by(PY) %>%
+    dplyr::summarise(count=n()) %>%
+    mutate(topic=topic[[i]])
+})
+df <- do.call(rbind, yearly_output)
+df$topic <- factor(df$topic, levels = rev(topic))
+
+
+ggplot(df, aes(PY,topic,size=count)) + 
+  geom_point(alpha=1/3) +
+  # geom_text(aes(label=topic),position = position_stack(0.5)) +
+  labs(x="",y="") +
+  scale_size(range = c(1,10))
+
+```
+
+值得一提的是，这些研究领域之间相互之间是存在较多关联的。例如：代谢与饮食相关性最强，共享了777篇研究，代谢、免疫和饮食三者的重叠度也很高，共享了695篇研究论文。代谢、免疫、饮食这三个因素与癌症、心血管疾病两个肠道菌群相关的疾病之间的关联都十分紧密，体现了这些因素在疾病致病过程中的重要作用。与之相比，肠X轴和中医药研究作为较为独立、有中国特色的研究领域，再加上总体研究数目较少，所以它们与其它研究主题重叠度表现的并不高。除此之外，我们也可以看到免疫、代谢、饮食、癌症等四个领域下特有的研究数量也比较高，分别包括了712篇、605篇、477篇和187篇研究论文。
+
+
+```{r china-topic-upsetR, fig.width=6,fig.cap="八大研究领域之间的重叠度。该图分为几个部分，左侧柱状图展示各研究领域的全部文章数目，右侧展示主题间文献的重叠度。其中右上方条形图展示相应研究领域重叠的文献数目。"}
+# 各研究主题间的重叠度
+library(UpSetR)
+
+topic_articles_core_SR <- lapply(topic_articles_core, function(m){
+  m$SR
+})
+
+names(topic_articles_core_SR) <- topic
+
+
+upset(fromList(topic_articles_core_SR), nintersects = 20,
+      sets=rev(names(topic_articles_core_SR)),
+      keep.order = FALSE,
+      mb.ratio = c(0.5, 0.5),
+      order.by = "freq")
+```
 
 ## 发展趋势
 
+为了揭示我国肠道菌群研究的发展趋势，我们将近十年最热的关键词做一个梳理。因为早期研究论文数量比较少，所以我们将这十年分成了5年，3年和2年的三个阶段，并进一步结合文章关键字的共现网络来进行阐述。
+
+
+第一个阶段（图 \@ref(fig:keyword-net-2010-2014)），自2010年到2014年，关键字的共现网络一共只有9个关键词，其中最突出的是饮食诱导的肥胖（Diet-induced obesity）、炎症（inflammation）和胰岛素抗性（insulin resistance）。这直观的反映了我们对肠道菌群的认知是始于对肥胖机制的新认识。这一新认识或许可以由肥胖（Obesity）和多样性（Diversity）之间的关系来指代——这是另外两个与肥胖相关的核心关键词。除此之外，还可以发现16S rRNA与人粪便有了重要的联系，直观来看，这意味着16S rRNA基因测序技术的进步在肠道菌群研究中起到了关键的推动作用。但可能会被忽视的一点是，选择粪便样本作为研究对象在这其中也功不可没。这五年间的另两个关键词是溃疡性结肠炎和克罗恩病，它们与肠道菌群失衡的关系逐步被揭示。
+
+```{r keyword-net-2010-2014, fig.cap=" 2010年-2014年间的研究热点。图中的点表示研究论文的关键词，线表示关键词的共现关系（即两个关键词同时出现在一篇文献中）。点的大小指示对应关键词出现次数的多少，线的粗细指示关键词共现关系的强弱。为简化图形，共现次数少于3次的在图中不可见。同时，孤立的关键词也被删除。"}
+keyword_network(China_study_core,from = 2010,to=2014,edge_weight_cutoff = 3)
+```
+
+
+第二个阶段（图 \@ref(fig:keyword-net-2015-2017)），自2015年到2017年，三年间的关键字共现网络比第一个阶段已经明显更加丰富。肥胖、炎症、饮食、多样性等关键字蝉联入榜。除此之外，健康、疾病、代谢和小鼠等相关研究也成为主要的研究主题。特别值得关注的是小鼠-炎症之间具有特别强的共现关系，这体现了小鼠作为模式动物在相关研究中已经处于不可或缺的地位。此外，多样性-代谢之间也具有特别强的共现关系，说明在多样性之上，研究人员开始关注菌群的代谢产物——而代谢产物被后来证明是重要的菌群效应分子。图中也可以发现，胆碱（Phosphatidylcholine）是这一阶段重点关注的代谢物。这一时期，肠道菌群与肿瘤之间的关系被进一步理解，在图中这体现在具核梭杆菌（Fusobacterium nucleatum）与肿瘤之间的较强的共现关系上。除此之外，蔗糖和减脂手术（Bariatric surgery）之间的关系也在这一阶段的研究中处于比较突出的地位。
+
+```{r keyword-net-2015-2017, fig.cap="2015-2017年间主要的研究方向（WoS关键词）"}
+keyword_network(China_study_core,from = 2015,to=2017,edge_weight_cutoff = 3)
+
+```
+第三个阶段，2018年到2019年，这两年间的研究主题呈现出异彩纷呈的情形。首先，我们可以发现炎症的关键地位得到加强，甚至已经处于核心节点的位置上，所有其它的研究主题都直接或者间接的与其相连。而炎症之外，在肥胖、胰岛素抗性、代谢、健康等传统主题的基础上，大量增加了毒性（toxicity）、激活（activation）、暴露（exposure）、调节（modulation）等与环境因子相关的研究主题，特别是阿特拉津（atrazine）和多酚类（polyphenols）这两种典型环境污染物的出现，标志着环境微生物学与肠道菌群的结合成为主流。还可以看到，（短）链脂肪酸（chain fatty acids）作为一个关键的菌群代谢产物，在这一时期成为主要研究主题。一些机制相关的主题词也开始出现，如基因表达，蛋白偶联受体等，标志着肠道菌群的作用机制逐渐明确。特别值得一提的是，大脑出现在这一阶段的关键词中，这反映了肠脑轴相关研究在此期间取得的进步。
+
+```{r keyword-net-2018-2019, fig.cap="2018-2019年间主要的研究方向（WoS关键词）"}
+keyword_network(China_study_core,from = 2018,to=2019,edge_weight_cutoff = 3) 
+
+```
 
 # 万方来源数据分析结果
 
