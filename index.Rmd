@@ -1,8 +1,20 @@
 ---
-title: "肠道菌群研究二十年·大数据"
+title: "从二十年研究大数据看我国的肠道菌群研究"
 date: "`r Sys.Date()`"
 delete_merged_file: true
+bookdown::gitbook: default
 ---
+
+```{css echo=FALSE}
+.figure{
+  text-align: center;
+}
+.vis-network{
+  text-align: center;
+  margin: auto;
+}
+```
+
 
 ```{r}
 library(dplyr)
@@ -10,6 +22,7 @@ library(tidyr)
 library(forcats)
 library(ggplot2)
 library(mrgut)
+library(export)
 ```
 
 
@@ -39,7 +52,6 @@ China_study_core <- readRDS("data/WoS-China-study-core.RDS")
 
 ```{r china-publication-number, fig.cap="肠道菌群研究领域我国每年发表的SCI论文及其中的高被引论文的数量"}
 ## 论文年发表量
-world_yearly_output <- read.csv("data/Wos-world-yearly-output.csv")
 all_article <- China_study %>% group_by(PY) %>%
   summarise(yearly_output = n())
 
@@ -51,9 +63,6 @@ highlycited <- China_study %>%
 library(RColorBrewer)
 plots <- lapply(list(all_article, highlycited), function(d){
   ggplot(d, aes(PY,yearly_output)) +
-    scale_fill_gradient2(low = brewer.pal(n=3, name="YlGnBu")[[1]],
-                         mid = brewer.pal(n=3, name="YlGnBu")[[2]],
-                         high=brewer.pal(n=3, name="YlGnBu")[[3]]) +
     geom_col() +
     theme_light() +
     theme(legend.position = "none") +
@@ -64,6 +73,8 @@ p1 <- plots[[1]] + labs(title = "中国每年发表论文的数量")
 p2 <- plots[[2]] + labs(title = "中国每年发表高被引论文的数量")
 
 p1 %>% aplot::insert_bottom(p2)
+graph2ppt(append = TRUE)
+
 ```
 
 ## 研究脉络
@@ -78,6 +89,8 @@ library(igraph)
 library(tibble)
 china_histnet <- histNetwork(China_study,min.citations = 10,verbose = F)
 histnet <- histPlot(china_histnet,verbose = FALSE)
+graph2ppt(append = TRUE)
+
 ```
 
 2008年发表在《美国科学院院刊（PNAS）》上的文章是一个重要的基点。该研究由上海交通大学赵立平教授、浙江大学第一附属人民医院李兰娟院士、中国国家人类基因组中心赵国屏院士和中国科学院武汉物理与数学研究所唐惠儒研究员实验室联合开展，并与伦敦帝国理工学院的JK Nicholson教授合作，第一作者是Li Min。研究的主要成果是发现了共生的肠道微生物调节人体的代谢表型。研究采用了代谢组学和宏基因组学相结合的方式，解析了7个中国人的粪便及尿液样本，并建立了菌群-宿主代谢连接的模型。研究在物种水平上发现了中国与美国人肠道菌群结构存在差异，并鉴定出最大影响宿主代谢和健康微生物组的关键功能成员的特征，如柔嫩梭菌群与尿液中8个代谢物有关，是菌群中功能性很强的成员，会影响许多宿主途径等。从代谢和宏基因组学的角度解释了人类与肠道菌群可以共同进化，并最终形成了密切的共生关系。
@@ -98,7 +111,7 @@ histnet <- histPlot(china_histnet,verbose = FALSE)
 
 第九项关键研究是2013年发表在《Nature Reviews Microbiology》上面的一篇综述，由赵立平教授执笔，该研究探讨了如何揭示肠道菌群在肥胖中的作用，指出可以通过微生物组关联分析、宿主响应和无菌动物等手段来完成这一任务。
 
-第十项关键研究2013年发表在《Nature》杂志上，揭示了与人体代谢性疾病相关的菌群特征[11]。华大基因参与了这一论文的发表。
+第十项关键研究2013年发表在《Nature》杂志上，揭示了与人体代谢性疾病相关的菌群特征。华大基因参与了这一论文的发表。
 
 第11项关键研究2013年发表在《ISME J》杂志上，通讯作者赵立平。在本研究中，在中国的肥胖人群中分离出一株产内毒素机会致病菌，可以促进无菌小鼠产生肥胖，从而建立了肠道菌群与肥胖之间的因果关系。
 
@@ -167,7 +180,10 @@ d <- China_affiliations  %>%
   select(Chinese_Name, nRecord)
 
 hbarplot(d) +
-  labs(x="",y="",title = "主要科研机构（以论文发表量计）")
+  labs(x="",y="",title = "主要科研机构（以论文发表量计）") +
+  scale_y_continuous(expand = c(0,10))
+
+graph2ppt(append = TRUE)
 
 ```
 
@@ -186,7 +202,8 @@ hbarplot(d) +
 
 ```{r china-aff-col-net, fig.cap="中国各大研究机构之间的合作关系"}
 library(visNetwork)
-university_network(China_study,edge_weight_cutoff = 10,nNode = 60) 
+university_network(China_study,edge_weight_cutoff = 10,nNode = 60) %>%
+  visExport()
 
 ```
 
@@ -199,7 +216,8 @@ university_network(China_study,edge_weight_cutoff = 10,nNode = 60)
 为了取得良好的可视化效果，我们对作者合作网络进行了简化，只保留了 200 个发文量最高的作者，同时删掉了合作发表论文数量小于 5 次的联系。这样，可以得到下面这幅图（图 \@ref(fig:top-china-aut-col-net)）。
 
 ```{r top-china-aut-col-net, fig.cap="过去二十年间中国发表论文最多的200名作者之间和合作关系"}
-author_network(China_study, nNode = 200, edge_weight_cutoff = 5)
+author_network(China_study, nNode = 200, edge_weight_cutoff = 5) %>%
+  visExport()
 ```
 
 
@@ -225,20 +243,23 @@ author_network(China_study, nNode = 200, edge_weight_cutoff = 5)
 
 
 ```{r top-china-aut-col-net-2010-2014, fig.cap="2010-2014年间中国发表论文最多的100名作者之间和合作关系"}
-author_network(China_study,from=2010,to=2014, nNode = 100, edge_weight_cutoff = 5)
+author_network(China_study,from=2010,to=2014, nNode = 100, edge_weight_cutoff = 5) %>%
+  visExport()
 ```
 
 
 接下来，在2015-2017这三年间，首先是汪建、赵立平、陈卫、李宁、魏泓、李兰娟等老师继续发光发热，同时也出现了印遇龙、张发明等新的有较多产出的研究力量（图\@ref(fig:top-china-aut-col-net-2015-2017)）。
 
 ```{r top-china-aut-col-net-2015-2017, fig.cap="2015-2017年间中国发表论文最多的100名作者之间和合作关系"}
-author_network(China_study,from=2015,to=2017, nNode = 100, edge_weight_cutoff = 5)
+author_network(China_study,from=2015,to=2017, nNode = 100, edge_weight_cutoff = 5) %>%
+  visExport()
 ```
 
 在第三个阶段，即2017-2019年间，合作群体有了更加明显的改变。首先可以明显看到团体小型化的趋势比较明显，这可能意味着肠道菌群研究已经分化出较多差异比较明显的不同研究方向；其次，华大基因的研究群体，以及李兰娟、赵立平等人的团队开始变小；与此同时，王邦茂、朱永官、王军军、曹建新、周宏伟等新的研究群体开始成形。
 
 ```{r top-china-aut-col-net-2018-2019, fig.cap="2018-2019年间中国发表论文最多的100名作者之间和合作关系"}
-author_network(China_study,from=2018,to=2019, nNode = 100, edge_weight_cutoff = 4)
+author_network(China_study,from=2018,to=2019, nNode = 100, edge_weight_cutoff = 4) %>%
+  visExport()
 ```
 
 
@@ -301,8 +322,6 @@ nTopic <- length(topic)
 ```
 
 ```{r}
-
-
 topic_articles_core <- lapply(topic_keywords, function(keyword){
   China_study %>%
     filter(str_detect(content, 
@@ -321,7 +340,7 @@ topic_nRecords_core <- lapply(topic_articles_core, function(article){
 
 
 
-```{r topic-nRecord-in-china-study, fig.cap="中国各研究主题关键论文数量对比",fig.width=4.5}
+```{r topic-nRecord-in-china-study, fig.cap="中国各研究主题关键论文数量对比"}
 yearly_output <- lapply(1:nTopic, function(i){
   topic_articles_core[[i]] %>%
     group_by(PY) %>%
@@ -337,6 +356,8 @@ ggplot(df, aes(PY,topic,size=count)) +
   # geom_text(aes(label=topic),position = position_stack(0.5)) +
   labs(x="",y="") +
   scale_size(range = c(1,10))
+
+graph2ppt(append = TRUE)
 
 ```
 
@@ -359,6 +380,8 @@ upset(fromList(topic_articles_core_SR), nintersects = 20,
       keep.order = FALSE,
       mb.ratio = c(0.5, 0.5),
       order.by = "freq")
+
+graph2ppt(append = TRUE)
 ```
 
 ## 发展趋势
@@ -369,20 +392,23 @@ upset(fromList(topic_articles_core_SR), nintersects = 20,
 第一个阶段（图 \@ref(fig:keyword-net-2010-2014)），自2010年到2014年，关键字的共现网络一共只有9个关键词，其中最突出的是饮食诱导的肥胖（Diet-induced obesity）、炎症（inflammation）和胰岛素抗性（insulin resistance）。这直观的反映了我们对肠道菌群的认知是始于对肥胖机制的新认识。这一新认识或许可以由肥胖（Obesity）和多样性（Diversity）之间的关系来指代——这是另外两个与肥胖相关的核心关键词。除此之外，还可以发现16S rRNA与人粪便有了重要的联系，直观来看，这意味着16S rRNA基因测序技术的进步在肠道菌群研究中起到了关键的推动作用。但可能会被忽视的一点是，选择粪便样本作为研究对象在这其中也功不可没。这五年间的另两个关键词是溃疡性结肠炎和克罗恩病，它们与肠道菌群失衡的关系逐步被揭示。
 
 ```{r keyword-net-2010-2014, fig.cap=" 2010年-2014年间的研究热点。图中的点表示研究论文的关键词，线表示关键词的共现关系（即两个关键词同时出现在一篇文献中）。点的大小指示对应关键词出现次数的多少，线的粗细指示关键词共现关系的强弱。为简化图形，共现次数少于3次的在图中不可见。同时，孤立的关键词也被删除。"}
-keyword_network(China_study_core,from = 2010,to=2014,edge_weight_cutoff = 3)
+keyword_network(China_study_core,from = 2010,to=2014,edge_weight_cutoff = 3) %>%
+  visExport()
 ```
 
 
-第二个阶段（图 \@ref(fig:keyword-net-2015-2017)），自2015年到2017年，三年间的关键字共现网络比第一个阶段已经明显更加丰富。肥胖、炎症、饮食、多样性等关键字蝉联入榜。除此之外，健康、疾病、代谢和小鼠等相关研究也成为主要的研究主题。特别值得关注的是小鼠-炎症之间具有特别强的共现关系，这体现了小鼠作为模式动物在相关研究中已经处于不可或缺的地位。此外，多样性-代谢之间也具有特别强的共现关系，说明在多样性之上，研究人员开始关注菌群的代谢产物——而代谢产物被后来证明是重要的菌群效应分子。图中也可以发现，胆碱（Phosphatidylcholine）是这一阶段重点关注的代谢物。这一时期，肠道菌群与肿瘤之间的关系被进一步理解，在图中这体现在具核梭杆菌（Fusobacterium nucleatum）与肿瘤之间的较强的共现关系上。除此之外，蔗糖和减脂手术（Bariatric surgery）之间的关系也在这一阶段的研究中处于比较突出的地位。
+第二个阶段（图 \@ref(fig:keyword-net-2015-2017)），自2015年到2017年，三年间的关键字共现网络比第一个阶段已经明显更加丰富。肥胖、炎症、饮食、多样性等关键字蝉联入榜。除此之外，健康、疾病、代谢和小鼠等相关研究也成为主要的研究主题。特别值得关注的是小鼠-炎症之间具有特别强的共现关系，这体现了小鼠作为模式动物在相关研究中已经处于不可或缺的地位。此外，多样性-代谢之间也具有特别强的共现关系，说明在多样性之上，研究人员开始关注菌群的代谢产物——而代谢产物被后来证明是重要的菌群效应分子。图中也可以发现，胆碱（Phosphatidylcholine）是这一阶段重点关注的代谢物。这一时期，肠道菌群与肿瘤之间的关系被进一步理解，在图中这体现在具核梭杆菌（*Fusobacterium nucleatum*）与肿瘤之间的较强的共现关系上。除此之外，蔗糖和减脂手术（Bariatric surgery）之间的关系也在这一阶段的研究中处于比较突出的地位。
 
 ```{r keyword-net-2015-2017, fig.cap="2015-2017年间主要的研究方向（WoS关键词）"}
-keyword_network(China_study_core,from = 2015,to=2017,edge_weight_cutoff = 3)
+keyword_network(China_study_core,from = 2015,to=2017,edge_weight_cutoff = 3) %>%
+  visExport()
 
 ```
 第三个阶段，2018年到2019年，这两年间的研究主题呈现出异彩纷呈的情形。首先，我们可以发现炎症的关键地位得到加强，甚至已经处于核心节点的位置上，所有其它的研究主题都直接或者间接的与其相连。而炎症之外，在肥胖、胰岛素抗性、代谢、健康等传统主题的基础上，大量增加了毒性（toxicity）、激活（activation）、暴露（exposure）、调节（modulation）等与环境因子相关的研究主题，特别是阿特拉津（atrazine）和多酚类（polyphenols）这两种典型环境污染物的出现，标志着环境微生物学与肠道菌群的结合成为主流。还可以看到，（短）链脂肪酸（chain fatty acids）作为一个关键的菌群代谢产物，在这一时期成为主要研究主题。一些机制相关的主题词也开始出现，如基因表达，蛋白偶联受体等，标志着肠道菌群的作用机制逐渐明确。特别值得一提的是，大脑出现在这一阶段的关键词中，这反映了肠脑轴相关研究在此期间取得的进步。
 
 ```{r keyword-net-2018-2019, fig.cap="2018-2019年间主要的研究方向（WoS关键词）"}
-keyword_network(China_study_core,from = 2018,to=2019,edge_weight_cutoff = 3) 
+keyword_network(China_study_core,from = 2018,to=2019,edge_weight_cutoff = 3)  %>%
+  visExport()
 
 ```
 
@@ -415,6 +441,7 @@ ggplot(d, aes(fct_rev(as_factor(name)), value)) + geom_col() +
         vjust = 0.3, hjust = 1, data = function(d) d[d$value > v, ], color = "white", fontface = "bold") + 
     geom_text(aes(label = name, y = value + 1), size = 3, 
         vjust = 0.5, hjust = 0, data = function(d) d[d$value <= v, ]) + 
+  scale_y_continuous(expand=c(0,5)) +
   coord_flip() + 
   theme_light() + 
   theme(axis.text.y = element_blank())
