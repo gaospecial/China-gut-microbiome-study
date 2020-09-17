@@ -24,6 +24,9 @@ library(ggplot2)
 library(mrgut)
 library(export)
 library(RColorBrewer)
+library(bibliometrix)
+library(igraph)
+library(tibble)
 theme_set(theme_light())
 ```
 
@@ -87,9 +90,7 @@ graph2ppt(append = TRUE)
 我们使用历史引证网络分析的方法来厘清我国肠道菌群的研究脉络（图 \@ref(fig:china-histnet)）。历史引证网络中共包含了19篇关键文献，其主要信息列示在表 \@ref(fig:china-histnet-articles) 中。接下来，我们将逐一回顾一下这些文献。
 
 ```{r china-histnet, fig.cap="我国肠道菌群研究的核心历史引证网络。水平线指示文章发表的年份，点之间的灰色线条指示引用关系，每个点代表着一篇文章（以名字和年份区分）。"}
-library(bibliometrix)
-library(igraph)
-library(tibble)
+
 china_histnet <- histNetwork(China_study,min.citations = 10,verbose = F)
 histnet <- histPlot(china_histnet,verbose = FALSE)
 graph2ppt(append = TRUE)
@@ -183,11 +184,19 @@ d <- China_affiliations  %>%
   select(Chinese_Name, nRecord)
 
 hbarplot(d) +
-  labs(x="",y="",title = "主要科研机构（以论文发表量计）") +
+  labs(x="",y="",title = "主要科研机构（以SCI论文发表量计）") +
   scale_y_continuous(expand = c(0,10))
 
 graph2ppt(append = TRUE)
 
+```
+
+
+```{r}
+tableTag_barplot(China_study,"J9") +
+  scale_y_continuous(expand = c(0,5)) +
+  labs(title = "发文量最多的30家外文期刊")
+graph2ppt(append = TRUE)
 ```
 
 
@@ -330,7 +339,7 @@ topic_nRecords_core <- lapply(topic_articles_core, function(article){
 
 
 
-```{r topic-nRecord-in-china-study, fig.cap="中国各研究主题关键论文数量对比"}
+```{r topic-nRecord-in-china-study, fig.cap="中国各研究主题关键论文数量对比",fig.width=6,fig.asp=0.5}
 yearly_output <- lapply(1:nTopic, function(i){
   topic_articles_core[[i]] %>%
     group_by(PY) %>%
@@ -443,16 +452,17 @@ ggplot(d, aes(fct_rev(as_factor(name)), value)) + geom_col() +
 
 ```{r fig.width=5}
 top_university <- read_tsv("data/wanfang-top-university.tsv",comment = "#")
-p_top_univ <- hbarplot(top_university) +
+hbarplot(top_university) +
   labs(title = "发表论文最多的10家研究机构")
+graph2ppt(append = TRUE)
+
 ```
 
-```{r fig.asp=0.5}
+```{r fig.width=5}
 top_journal <- read_tsv("data/wanfang-top-journal.tsv",comment = "#")
-p_top_journal <- hbarplot(top_journal) +
+hbarplot(top_journal) +
   labs(title = "发文量最大的10家期刊")
 
-cowplot::plot_grid(p_top_univ,p_top_journal,ncol = 2,labels = "AUTO")
 graph2ppt(append = TRUE)
 
 ```
