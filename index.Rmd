@@ -23,14 +23,18 @@ library(forcats)
 library(ggplot2)
 library(mrgut)
 library(export)
+library(RColorBrewer)
+theme_set(theme_light())
 ```
 
 
 # 数据来源和分析方法
 
 数据来源于两个文献数据库，分别是Web of Science（英文）和万方数据库（中文）。
-主要采用的是文献计量学方法，包括R语言的软件包 `bibliometerix` 和其它一些[自编函数](./R)。
+主要采用的是文献计量学方法，包括R语言的软件包 `bibliometerix` 和其它一些[^自编函数]。
 文章中给出了更多相关信息。
+
+[^自编函数]: 自编函数暂未开放，需要请联系作者。
 
 # WoS 来源数据分析结果
 
@@ -60,7 +64,6 @@ highlycited <- China_study %>%
   group_by(PY) %>%
   summarise(yearly_output = n()) 
 
-library(RColorBrewer)
 plots <- lapply(list(all_article, highlycited), function(d){
   ggplot(d, aes(PY,yearly_output)) +
     geom_col() +
@@ -294,21 +297,8 @@ gut_axis_keywords <- list(primary = c("gut.{4,15}axis"),
                           secondary = NULL)
 
 
-metabolism_effect_keywords <- list(primary = c("\\bmetabol[:alpha:]+"),
-                        secondary = c("SCFA","short-chain fatty acids","butyrate","TMAO","TMA","secondary bile acids"))
-
 medicine_keywords <- list(primary = c("medicine|medication|drug|[:alpha:]+pharmaco[:alpha:]+|xenobiotic"),
                         secondary = NULL)
-
-early_life_keywords <- list(primary = c("early.{1,2}life|infan[:alpha:]+|maternal"),
-                        secondary = c("pregnan[:alpha:]+","[:alpha:]+natal","in utero","uterus","placent[:alpha:]+","vertical transmission"))
-
-cohort_keywords <- list(primary = c("cohort"),
-                        secondary = NULL)
-
-dark_matter_keywords <- list(primary = c("dark matter|virome|mycobiome|culturomics"),
-                             secondary = NULL)
-
 
 chinese_medicine_keywords <- list(primary = c("chinese herbal medicine|traditional Chinese medicine"))
 
